@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BeautyMind AI</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+
+    *{
+      font-family:'Poppins',sans-serif;
+    }
+
+    body{
+      background:#050816;
+      overflow-x:hidden;
+      color:white;
+    }
+
+    .gradient-text{
+      background:linear-gradient(to right,#ff4fd8,#9f6bff);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+
+    .glass{
+      background:rgba(255,255,255,0.06);
+      backdrop-filter:blur(16px);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+
+    .hero-bg{
+      background:
+      radial-gradient(circle at top left,#ff4fd833,transparent 35%),
+      radial-gradient(circle at bottom right,#7c3aed33,transparent 35%),
+      #050816;
+    }
+
+    .particle{
+      position:absolute;
+      background:rgba(255,255,255,0.25);
+      border-radius:50%;
+      animation:float linear infinite;
+    }
+
+    @keyframes float{
+      from{
+        transform:translateY(100vh);
+        opacity:0;
+      }
+
+      to{
+        transform:translateY(-10vh);
+        opacity:1;
+      }
+    }
+
+    .typing{
+      overflow:hidden;
+      white-space:nowrap;
+      border-right:3px solid #ff4fd8;
+      width:0;
+      animation:typing 2s steps(30,end) forwards;
+    }
+
+    @keyframes typing{
+      from{width:0}
+      to{width:100%}
+    }
+
+    .product-card:hover{
+      transform:translateY(-10px) scale(1.02);
+    }
+
+  </style>
+</head>
+
+<body class="hero-bg min-h-screen relative">
+
+<div id="particles" class="absolute inset-0 overflow-hidden"></div>
+
+<section class="relative z-10 px-6 lg:px-20 py-16">
+
+  <div class="max-w-7xl mx-auto">
+
+    <div class="text-center mb-14">
+
+      <div class="inline-block px-6 py-2 rounded-full glass mb-6 text-pink-300">
+        ✨ AI Beauty Recommendation Platform
+      </div>
+
+      <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-8">
+        <span class="gradient-text">BeautyMind AI</span>
+      </h1>
+
+      <p class="text-gray-300 text-xl max-w-3xl mx-auto leading-relaxed">
+        Intelligent Beauty Product Assistant powered by AI-style dataset analysis.
+      </p>
+
+    </div>
+
+    <section id="chat" class="mb-20">
+
+      <div class="glass rounded-[40px] p-8 shadow-2xl border border-white/10">
+
+        <div class="flex items-center justify-between mb-8">
+
+          <div>
+            <div class="text-4xl font-extrabold gradient-text mb-2">
+              BeautyMind AI Assistant
+            </div>
+
+            <div class="text-gray-400 text-lg">
+              Ask anything about beauty products...
+            </div>
+          </div>
+
+        </div>
+
+        <div id="chatBox"
+        class="space-y-6 h-[600px] overflow-y-auto pr-3 mb-8">
+
+          <div class="flex justify-start">
+            <div class="glass px-6 py-5 rounded-3xl max-w-[80%]">
+
+              <div class="font-bold gradient-text text-xl mb-3">
+                BeautyMind AI ✨
+              </div>
+
+              <div class="text-gray-300 leading-relaxed text-lg">
+                Hello! Ask me anything about beauty products.
+                <br><br>
+
+                Try:
+                <br>
+                • Best sunscreen under 500
+                <br>
+                • Compare Lakme and Maybelline lipstick
+                <br>
+                • Top rated moisturizer
+                <br>
+                • Budget skincare products
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex gap-4">
+
+          <input
+          id="userInput"
+          type="text"
+          placeholder="Ask about beauty products..."
+          class="flex-1 glass rounded-2xl px-6 py-5 bg-transparent outline-none text-white text-lg placeholder-gray-400"/>
+
+          <button onclick="sendMessage()"
+          class="px-8 py-5 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 font-bold hover:scale-105 transition shadow-2xl">
+            Send 🚀
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <section id="products">
+
+      <div class="text-center mb-10">
+        <div class="text-5xl font-extrabold gradient-text mb-3">
+          Trending Products
+        </div>
+
+        <div class="text-gray-400 text-lg">
+          AI recommended beauty products from dataset analysis.
+        </div>
+      </div>
+
+      <div id="productGrid"
+      class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      </div>
+
+    </section>
+
+  </div>
+
+</section>
+
+<script>
+
+const particles=document.getElementById('particles');
+
+for(let i=0;i<35;i++){
+  const particle=document.createElement('div');
+  particle.classList.add('particle');
+  particle.style.width=Math.random()*10+'px';
+  particle.style.height=particle.style.width;
+  particle.style.left=Math.random()*100+'%';
+  particle.style.animationDuration=Math.random()*12+6+'s';
+  particles.appendChild(particle);
+}
+
+let dataset=[];
+
+Papa.parse('nyka_top_brands_cosmetics_product_reviews.csv',{
+  download:true,
+  header:true,
+
+  complete:function(results){
+
+    dataset=results.data.filter(item=>item.product_title);
+
+    showTrendingProducts();
+  }
+});
+
+function sendMessage(){
+
+  const input=document.getElementById('userInput');
+
+  const query=input.value.trim();
+
+  if(!query) return;
+
+  addUserMessage(query);
+
+  input.value='';
+
+  showTypingAnimation();
+
+  setTimeout(()=>{
+    processAIQuery(query);
+  },1200);
+}
+
+function addUserMessage(message){
+
+  const chatBox=document.getElementById('chatBox');
+
+  const div=document.createElement('div');
+
+  div.className='flex justify-end';
+
+  div.innerHTML=`
+    <div class="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-4 rounded-3xl max-w-[75%] text-white shadow-2xl">
+      ${message}
+    </div>
+  `;
+
+  chatBox.appendChild(div);
+
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function showTypingAnimation(){
+
+  const chatBox=document.getElementById('chatBox');
+
+  const div=document.createElement('div');
+
+  div.className='flex justify-start';
+
+  div.id='typingLoader';
+
+  div.innerHTML=`
+    <div class="glass px-6 py-4 rounded-3xl typing text-pink-300">
+      BeautyMind AI is analyzing products...
+    </div>
+  `;
+
+  chatBox.appendChild(div);
+
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function removeTypingAnimation(){
+
+  const loader=document.getElementById('typingLoader');
+
+  if(loader) loader.remove();
+}
+
+function processAIQuery(query){
+
+  removeTypingAnimation();
+
+  const lower=query.toLowerCase();
+
+  if(lower.includes('compare')){
+    compareProducts(query);
+    return;
+  }
+
+  if(lower.includes('best')){
+    recommendBestProducts(query);
+    return;
+  }
+
+  if(lower.includes('cheap') || lower.includes('budget') || lower.includes('under')){
+    showBudgetProducts(query);
+    return;
+  }
+
+  if(lower.includes('rating') || lower.includes('top rated')){
+    showTopRatedProducts();
+    return;
+  }
+
+  searchProducts(query);
+}
+
+function searchProducts(query){
+
+  const lower=query.toLowerCase();
+
+  const filtered=dataset.filter(item=>{
+
+    const title=(item.product_title || '').toLowerCase();
+    const brand=(item.brand_name || '').toLowerCase();
+    const tags=(item.product_tags || '').toLowerCase();
+
+    return(
+      title.includes(lower) ||
+      brand.includes(lower) ||
+      tags.includes(lower)
+    );
+  });
+
+  displayAIResults(filtered.slice(0,6),`Search Results for "${query}"`);
+}
+
+function recommendBestProducts(query){
+
+  const filtered=dataset
+  .sort((a,b)=>parseFloat(b.product_rating||0)-parseFloat(a.product_rating||0))
+  .slice(0,6);
+
+  displayAIResults(filtered,'Top AI Recommended Products ✨');
+}
+
+function showBudgetProducts(query){
+
+  const budgetMatch=query.match(/\d+/);
+
+  let budget=500;
+
+  if(budgetMatch){
+    budget=parseInt(budgetMatch[0]);
+  }
+
+  const filtered=dataset
+  .filter(item=>parseFloat(item.price||0)<=budget)
+  .sort((a,b)=>parseFloat(b.product_rating||0)-parseFloat(a.product_rating||0))
+  .slice(0,6);
+
+  displayAIResults(filtered,`Best Products Under ₹${budget} 💰`);
+}
+
+function showTopRatedProducts(){
+
+  const filtered=dataset
+  .sort((a,b)=>parseFloat(b.product_rating||0)-parseFloat(a.product_rating||0))
+  .slice(0,6);
+
+  displayAIResults(filtered,'Highest Rated Beauty Products ⭐');
+}
+
+function compareProducts(query){
+
+  const words=query.toLowerCase().split(' ');
+
+  const matched=dataset.filter(item=>{
+
+    const title=(item.product_title || '').toLowerCase();
+
+    return words.some(word=>title.includes(word));
+
+  }).slice(0,2);
+
+  const chatBox=document.getElementById('chatBox');
+
+  const div=document.createElement('div');
+
+  div.className='flex justify-start';
+
+  if(matched.length<2){
+
+    div.innerHTML=`
+      <div class="glass rounded-3xl p-6 text-white max-w-[80%]">
+        Please mention two product names clearly for comparison.
+      </div>
+    `;
+
+    chatBox.appendChild(div);
+
+    return;
+  }
+
+  const p1=matched[0];
+  const p2=matched[1];
+
+  div.innerHTML=`
+
+  <div class="glass rounded-[35px] p-8 w-full border border-purple-500/20 shadow-2xl">
+
+    <div class="text-4xl font-extrabold gradient-text mb-8">
+      AI Product Comparison ⚡
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+
+      <div class="glass rounded-3xl p-6">
+
+        <div class="text-2xl font-bold mb-5">
+          ${p1.product_title}
+        </div>
+
+        <div class="space-y-4 text-gray-300 text-lg">
+          <div>💄 Brand: ${p1.brand_name}</div>
+          <div>⭐ Rating: ${p1.product_rating}</div>
+          <div>💰 Price: ₹${p1.price}</div>
+        </div>
+      </div>
+
+      <div class="glass rounded-3xl p-6">
+
+        <div class="text-2xl font-bold mb-5">
+          ${p2.product_title}
+        </div>
+
+        <div class="space-y-4 text-gray-300 text-lg">
+          <div>💄 Brand: ${p2.brand_name}</div>
+          <div>⭐ Rating: ${p2.product_rating}</div>
+          <div>💰 Price: ₹${p2.price}</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+  `;
+
+  chatBox.appendChild(div);
+
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function displayAIResults(products,heading){
+
+  const chatBox=document.getElementById('chatBox');
+
+  const div=document.createElement('div');
+
+  div.className='flex justify-start';
+
+  let html=`
+
+  <div class="glass rounded-[35px] p-8 max-w-full border border-purple-500/20 shadow-2xl">
+
+    <div class="text-4xl font-extrabold gradient-text mb-8">
+      ${heading}
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+  `;
+
+  products.forEach(product=>{
+
+    const rating=parseFloat(product.product_rating||0);
+    const price=parseFloat(product.price||0);
+    const mrp=parseFloat(product.mrp||0);
+
+    const discount=mrp>0
+    ?Math.round(((mrp-price)/mrp)*100)
+    :0;
+
+    html+=`
+
+    <div class="glass rounded-3xl p-6 hover:scale-[1.03] transition duration-500 border border-white/10 shadow-xl">
+
+      <div class="flex justify-between items-start mb-5">
+
+        <div>
+          <div class="text-2xl font-bold leading-snug mb-2">
+            ${product.product_title.substring(0,60)}
+          </div>
+
+          <div class="text-pink-300 font-semibold text-lg">
+            ${product.brand_name}
+          </div>
+        </div>
+
+        <div class="bg-yellow-400 text-black px-4 py-2 rounded-full font-bold shadow-lg">
+          ⭐ ${rating}
+        </div>
+      </div>
+
+      <div class="space-y-3 text-gray-300 mb-6 text-lg">
+        <div>💰 Price: ₹${price}</div>
+        <div>🏷️ Original Price: ₹${mrp}</div>
+        <div>🔥 Discount: ${discount}% OFF</div>
+      </div>
+
+    </div>
+    `;
+  });
+
+  html+=`
+    </div>
+  </div>
+  `;
+
+  div.innerHTML=html;
+
+  chatBox.appendChild(div);
+
+  chatBox.scrollTop=chatBox.scrollHeight;
+
+  displayProductCards(products);
+}
+
+function showTrendingProducts(){
+
+  const trending=dataset
+  .sort((a,b)=>parseFloat(b.product_rating||0)-parseFloat(a.product_rating||0))
+  .slice(0,6);
+
+  displayProductCards(trending);
+}
+
+function displayProductCards(products){
+
+  const grid=document.getElementById('productGrid');
+
+  grid.innerHTML='';
+
+  products.forEach(product=>{
+
+    const rating=parseFloat(product.product_rating||0);
+    const price=parseFloat(product.price||0);
+
+    const card=document.createElement('div');
+
+    card.className='glass rounded-[35px] p-6 product-card transition duration-500 shadow-2xl';
+
+    card.innerHTML=`
+
+    <div class="h-56 rounded-3xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center text-8xl mb-6 shadow-inner">
+      💄
+    </div>
+
+    <div class="flex justify-between items-center mb-4">
+      <div class="text-pink-300 font-semibold text-lg">
+        ${product.brand_name}
+      </div>
+
+      <div class="bg-yellow-400 text-black px-4 py-2 rounded-full font-bold">
+        ⭐ ${rating}
+      </div>
+    </div>
+
+    <div class="text-2xl font-bold leading-snug mb-5">
+      ${product.product_title.substring(0,65)}
+    </div>
+
+    <div class="space-y-3 text-gray-300 mb-6 text-lg">
+      <div>💰 Price: ₹${price}</div>
+      <div>✨ AI Recommended Product</div>
+    </div>
+
+    `;
+    grid.appendChild(card);
+  });
+}
+
+document.getElementById('userInput').addEventListener('keypress',function(e){
+  if(e.key==='Enter'){
+    sendMessage();
+  }
+});
+
+</script>
+
+</body>
+</html>
